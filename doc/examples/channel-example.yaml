@@ -1,0 +1,24 @@
+# Example channel layer, applied after the base layer with --channel-config.
+# A channel profile is always selected explicitly; it is never inferred from
+# a file name.
+captions:
+  service: CC1
+baselines:
+  # Explicit program baselines for this channel (BASE-02 channel profile).
+  caption_style: roll_up
+  aspect_ratio: 1.7778
+logo:
+  # Optional: a logo exported earlier with --export-logo, relative to this file.
+  # asset: logos/channel.tvad-logo.json
+  search_regions: [[0.66, 0.03, 0.32, 0.26]]
+bumpers:
+  sample_interval: 200ms
+  # templates:
+  #   back_from_break:
+  #     image: bumpers/back.png
+  #     region: [0, 0, 1, 1]
+  #     geometry: stretch
+  #     threshold: 0.9
+  #     min_support: 400ms
+breaks:
+  allow_truncated_edges: true

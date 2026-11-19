@@ -1,0 +1,5 @@
+ref/*
+bin/
+.DS_Store
+REFINEMENTS-TODO.md
+AGENT_REVIEW.md

@@ -1,0 +1,12 @@
+# Example base layer: site-wide choices. Only the keys listed here change;
+# everything else keeps the built-in default.
+outputs:
+  diagnostics: detailed
+resources:
+  workers: 8
+  memory_budget: 256MiB
+dark:
+  mode: auto
+scoring:
+  # Markets with 5-second spots can extend the ordered list (lists replace).
+  standard_durations: [5s, 10s, 15s, 20s, 30s, 45s, 60s, 90s, 120s]

@@ -1,0 +1,718 @@
+# tv-ad-detect configuration, schema version 1
+# Durations carry units (100ms, 30s). Ratios are 0..1. Luminance is 0..255.
+# Layers: built-in defaults < --config < --channel-config < --set overrides.
+
+input:
+  # off, or auto: decode video in hardware where the platform offers it (VideoToolbox on macOS), falling back to software. It lowers CPU use, not necessarily wall time; measurements are the same.
+  # values: "off" | auto
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  hardware_decode: "off"
+  # Program number of a multi-program transport stream to analyze (automatic track selection stays inside it); 0 = the first suitable streams of any program.
+  # range: 0 .. 65535
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  program: 0
+  # Video track: auto (first non-attached-picture video stream) or a container stream index.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  video_track: auto
+  # Audio track: auto (default-flagged, else first audio stream), none, or a container stream index.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  audio_track: auto
+  # Caption source: auto (the first CEA-608 caption track when present, else CEA-608 embedded in the video stream), embedded, none, or a container stream index.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  caption_track: auto
+  # Media adapter used for path inputs.
+  # values: ffmpeg
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  decoder: ffmpeg
+  # HDR transfer or other unsupported processing: warn = analyze in degraded mode with a warning; fail = capability error.
+  # values: warn | fail
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  unsupported_format_policy: warn
+  # A requested audio/caption track that is unavailable: degraded = warn and disable that evidence; strict = fail.
+  # values: degraded | strict
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  optional_stream_policy: degraded
+  # A forward jump between a frame's expected end and the next frame larger than this is a coverage gap (unknown time).
+  # range: 1ms .. 1h
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  timestamp_gap_threshold: 500ms
+  # Backward timestamp jump: rebase = continue directly after the previous frame and warn; fail = timing error.
+  # values: rebase | fail
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  timestamp_reset_policy: rebase
+  # Fail with a timing error when more than this ratio of frames carries no timestamp (missing ones are interpolated).
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  max_missing_timestamp_ratio: 0.5
+  # Decoder in-loop deblocking skipped for: none, non-reference frames (no drift), or all frames (fastest, slight drift).
+  # values: none | nonref | all
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  skip_loop_filter: nonref
+  # Fail with a media error when more than this ratio of video packets fails to decode.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  max_decode_error_ratio: 0.5
+
+package:
+  # Manifest type; auto detects by content.
+  # values: auto | hls | dash
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  manifest_type: auto
+  # Variant/Representation: highest, lowest, index=<n>, id=<id>, bandwidth=<bps>.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  video_selection: highest
+  # Audio rendition: auto, none, lang=<code>, name=<name>, id=<id>.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  audio_selection: auto
+  # Smallest acceptable picture height for video_selection=lowest.
+  # range: 0 .. 8640
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_height: 360
+  # Unreadable resource: fail the analysis, or (degraded) keep its interval unknown and mark the result incomplete.
+  # values: fail | degraded
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  failure_policy: fail
+  # Permit non-local resource URIs (requires a caller-provided resolver; the built-in resolver is local only).
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  allow_remote: false
+  # Largest manifest that will be read.
+  # range: 1KiB .. 1GiB
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  max_manifest_bytes: 16MiB
+  # Largest number of media resources per track.
+  # range: 1 .. 100000000
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  max_segments: 1000000
+  # Read buffer per open track; at most two tracks are open at a time.
+  # range: 4KiB .. 64MiB
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  io_buffer_size: 256KiB
+  # Package identity covers a SHA-256 of every media resource's bytes as read (catches a replaced resource of the same size and time). Off: each resource's size and modification time, from the resolver.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  hash_media: false
+
+sampling:
+  # Maximum width of the canonical luminance analysis image; pictures are reduced by an integer box-filter factor (reported as analysis_scale).
+  # range: 64 .. 1920
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  analysis_max_width: 384
+  # Maximum height of the canonical luminance analysis image.
+  # range: 36 .. 1080
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  analysis_max_height: 216
+  # Measurement region [x, y, w, h] (normalized 0..1) for dark/uniform and scene measurements.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  region: [0, 0, 1, 1]
+  # Measure the bright-pixel safeguard on every full-resolution frame instead of the reduced analysis image.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  full_resolution_bright_check: true
+  # Visual sampling: all = every frame; reference = decode only reference frames (coarse: less CPU, timing limited to the reference-frame spacing, embedded caption data unavailable; reported as a warning).
+  # values: all | reference
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  decode_frames: all
+
+signals:
+  # Black and uniform frame detection.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  dark_uniform: true
+  # Station logo presence.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  logo: true
+  # Scene-change measurement.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  scene: true
+  # Coded resolution change detection.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  resolution: true
+  # Caption presentation style.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  captions: true
+  # Active-picture aspect ratio.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  aspect: true
+  # Silence and audio level.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  audio: true
+  # Known bumper template matching (reported unavailable when no template is supplied).
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  bumpers: true
+
+dark:
+  # fixed thresholds, or auto calibration from the recording with fixed fallback.
+  # values: fixed | auto
+  mode: fixed
+  # Fixed maximum mean luminance (0-255) of a dark frame.
+  # range: 0 .. 255
+  max_mean_luma: 19
+  # Luminance (0-255) above which a pixel counts as bright for the dark safeguard.
+  # range: 1 .. 255
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  bright_pixel_luma: 60
+  # Ratio of bright pixels above which a frame is not dark.
+  # range: 0 .. 1
+  max_bright_fraction: 0.01
+  # Luminance standard deviation (0-255 units) above which a frame is not dark.
+  # range: 0 .. 128
+  dark_max_nonuniformity: 16
+  # A frame that is not dark is tested again without the search region holding the validated logo, so a logo kept on screen over a black separator does not hide it.
+  ignore_logo_region: true
+  # Detect nearly solid (non-dark) frames as a separate event kind.
+  detect_uniform: true
+  # Fixed maximum luminance standard deviation of a uniform frame.
+  # range: 0 .. 128
+  uniform_max_nonuniformity: 3
+  # Lower bound of the calibrated dark threshold.
+  # range: 0 .. 255
+  auto_min_luma: 8
+  # Upper bound of the calibrated dark threshold.
+  # range: 0 .. 255
+  auto_max_luma: 40
+  # Margin added above the darkest frame cluster when calibrating.
+  # range: 0 .. 32
+  auto_margin: 2
+  # Minimum usable frames required to attempt calibration.
+  # range: 1 .. 100000000
+  auto_min_frames: 1000
+  # Minimum frames in the darkest cluster for a stable estimate.
+  # range: 1 .. 100000000
+  auto_min_support: 8
+  # Lower bound of the calibrated uniform threshold.
+  # range: 0 .. 128
+  auto_uniform_min: 1
+  # Upper bound of the calibrated uniform threshold.
+  # range: 0 .. 128
+  auto_uniform_max: 8
+
+logo:
+  # Logo search regions, a list of [x, y, w, h] (normalized).
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  search_regions: [[0.02, 0.03, 0.32, 0.26], [0.66, 0.03, 0.32, 0.26], [0.02, 0.71, 0.32, 0.26], [0.66, 0.71, 0.32, 0.26]]
+  # Spacing of logo observations.
+  # range: 10ms .. 1m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  sample_interval: 500ms
+  # Minimum spacing between observations used for learning.
+  # range: 0s .. 10m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  learn_min_separation: 2s
+  # Minimum luminance-histogram distance from the previous learning observation (rejects static scenes).
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  learn_min_change: 0.05
+  # Sobel gradient magnitude (|gx|+|gy|)/8 in luminance units above which a pixel is an edge.
+  # range: 1 .. 255
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  edge_threshold: 10
+  # Ratio of learning observations in which a pixel must be an edge to belong to the logo.
+  # range: 0.01 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_persistence: 0.35
+  # Minimum learning observations (learning support).
+  # range: 2 .. 1000000
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_learn_samples: 60
+  # Minimum persistent edge pixels of a candidate.
+  # range: 1 .. 100000
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_edge_pixels: 24
+  # Minimum candidate width as a ratio of frame width.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_width: 0.02
+  # Maximum candidate width as a ratio of frame width.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  max_width: 0.3
+  # Minimum candidate height as a ratio of frame height.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_height: 0.02
+  # Maximum candidate height as a ratio of frame height.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  max_height: 0.24
+  # Persistent edge groups closer than this ratio of frame width are merged into one candidate.
+  # range: 0 .. 0.5
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  cluster_gap: 0.02
+  # Match measure (ratio of logo edge pixels found) at or above which the logo is present.
+  # range: 0 .. 1
+  present_threshold: 0.6
+  # Match measure at or below which the logo is absent; between the thresholds the previous state is kept.
+  # range: 0 .. 1
+  absent_threshold: 0.35
+  # A present match must exceed the best match of the mask moved 3 analysis pixels by this share of the mask (text or texture in the logo's place matches a moved mask too); otherwise the observation is unknown. 0 = off.
+  # range: 0 .. 1
+  min_specificity: 0.1
+  # When more than this ratio of the non-logo pixels in the logo box are edges, the picture is too textured to judge and the observation is unknown.
+  # range: 0 .. 1
+  max_background_density: 0.85
+  # A presence state change must persist this long (time-based smoothing).
+  # range: 0s .. 10m
+  min_state_duration: 2s
+  # Smoothing for present runs only; 0 = min_state_duration. Longer than min_absent_duration makes the logo slower to turn on than off.
+  # range: 0s .. 10m
+  min_present_duration: 0s
+  # Smoothing for absent runs only; 0 = min_state_duration.
+  # range: 0s .. 10m
+  min_absent_duration: 0s
+  # Each present run gives up this much at both ends to unknown, so the logo's fade in and out never vouches for the neighbouring content (0 = off).
+  # range: 0s .. 1m
+  present_trim: 0s
+  # Validation: minimum recording-level presence ratio.
+  # range: 0 .. 1
+  min_occupancy: 0.4
+  # Validation: maximum recording-level presence ratio.
+  # range: 0 .. 1
+  max_occupancy: 0.92
+  # A match measure between absent_threshold and present_threshold keeps the previous state (hold) or is unknown.
+  # values: hold | unknown
+  ambiguous_state: hold
+  # fixed: present_threshold and absent_threshold as given. relative: each a share of the recording's own logo level (the reference_quantile of the candidate's match measures).
+  # values: fixed | relative
+  threshold_mode: fixed
+  # relative mode: quantile of the usable match measures taken as the logo's own level.
+  # range: 0.5 .. 1
+  reference_quantile: 0.9
+  # relative mode: present at or above this share of the logo level.
+  # range: 0 .. 1
+  relative_present: 0.8
+  # relative mode: absent at or below this share of the logo level.
+  # range: 0 .. 1
+  relative_absent: 0.3
+  # Validation: minimum ratio of video time with a known logo state.
+  # range: 0 .. 1
+  min_coverage: 0.5
+  # Path of a logo asset (tvad-logo JSON); empty = auto-learn.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  asset: ""
+  # Directory of saved learned logos, one per cache_key; empty = no cache. With a cache entry and no asset, the entry is used as the asset; a missing or unusable entry falls back to learning (with a warning for an unusable one). The library only reads the cache; the command line also saves a newly validated learned logo there.
+  cache_dir: ""
+  # Name of this recording's entry in cache_dir, normally the channel (letters, digits, dot, dash, underscore).
+  cache_key: ""
+
+scene:
+  # Luminance histogram bins.
+  # values: "16" | "32" | "64" | "128" | "256"
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  histogram_bins: 64
+  # Hard cut: total-variation distance (0..1) between adjacent normalized histograms.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  cut_threshold: 0.4
+  # Gradual change: distance across gradual_window without a hard cut.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  gradual_threshold: 0.55
+  # Span compared for gradual changes; 0 disables gradual detection.
+  # range: 0s .. 10s
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  gradual_window: 400ms
+  # Duplicate suppression: minimum spacing of scene events.
+  # range: 0s .. 1m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_spacing: 400ms
+
+aspect:
+  # Maximum mean luminance of a border row/column.
+  # range: 0 .. 255
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  border_max_luma: 24
+  # Maximum luminance above the row/column mean inside a border (spatial consistency).
+  # range: 0 .. 255
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  border_max_deviation: 12
+  # Spacing of active-picture observations (0 = every frame).
+  # range: 0s .. 1m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  sample_interval: 200ms
+  # A changed ratio must persist this long to be confirmed.
+  # range: 0s .. 10m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  persistence: 2s
+  # Relative ratio difference treated as a change or mismatch.
+  # range: 0.001 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  ratio_tolerance: 0.04
+  # Crops leaving less than this ratio of width or height are invalid.
+  # range: 0.05 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  min_active_fraction: 0.4
+  # Opposite borders may differ by at most this ratio of the frame dimension; asymmetric estimates are unknown.
+  # range: 0 .. 1
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  symmetry_tolerance: 0.01
+
+captions:
+  # CEA-608 caption service.
+  # values: CC1 | CC2 | CC3 | CC4
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  service: CC1
+  # No caption activity for this long means observed absence (none).
+  # range: 100ms .. 10m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  inactive_timeout: 20s
+  # No caption data at all for this long means unknown.
+  # range: 100ms .. 10m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  data_timeout: 2s
+  # Opt-in phrase matching: phrases typical of advertisements (drug names, "ask your doctor if", slogans). Matched case-insensitively in the decoded caption text of the service, ignoring punctuation and across line breaks; caption text is never stored or reported. Empty = off. Commas cannot appear inside a phrase.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  ad_phrases: []
+  # Opt-in phrase matching: phrases typical of the program (a show's catchphrase or credits). As ad_phrases.
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  program_phrases: []
+  # A phrase matched again within this time counts once.
+  # range: 0s .. 10m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  phrase_repeat: 10s
+  # Style intervals shorter than this are absorbed by the preceding interval.
+  # range: 0s .. 10m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  style_persistence: 2s
+
+audio:
+  # Energy metric: per-channel RMS in dBFS.
+  # values: rms
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  metric: rms
+  # Channels included in levels. A window is silent only when every included channel is below the silence level.
+  # values: all | exclude_lfe
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  channel_policy: all
+  # Fixed measurement window.
+  # range: 1ms .. 1s
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  window: 20ms
+  # Silence threshold in dBFS.
+  # range: -160 .. 0
+  silence_level_dbfs: -50
+  # Minimum duration of a silence event.
+  # range: 0s .. 1m
+  min_silence: 100ms
+  # fixed: silence_level_dbfs. auto: estimate the recording's silence floor from its quietest windows (bounded by auto_min_dbfs..auto_max_dbfs), falling back to the fixed level with a reason.
+  # values: fixed | auto
+  silence_mode: fixed
+  # auto mode: duration-weighted quantile of window levels taken as the silence floor.
+  # range: 0 .. 0.5
+  auto_quantile: 0.05
+  # auto mode: the silence level is this many dB above the floor.
+  # range: 0 .. 40
+  auto_margin_db: 6
+  # auto mode: lowest allowed silence level.
+  # range: -160 .. 0
+  auto_min_dbfs: -70
+  # auto mode: highest allowed silence level.
+  # range: -160 .. 0
+  auto_max_dbfs: -35
+  # A silence counts only when the audio within this time before and after it is louder than the silence level by silence_context_db (sides without audio are neutral); 0 = off.
+  # range: 0s .. 10s
+  silence_context: 0s
+  # Margin above the silence level that the context must reach.
+  # range: 0 .. 60
+  silence_context_db: 10
+  # Tolerance for matching silence with visual boundary events.
+  # range: 0s .. 10s
+  alignment: 250ms
+
+bumpers:
+  # Spacing of template comparisons (0 = every frame).
+  # range: 0s .. 1m
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  sample_interval: 200ms
+  # Which edges of a match interval supply candidate boundaries.
+  # values: both | start | end
+  # feature key: affects measurements; a saved feature file cannot be re-classified with a different value
+  boundary: both
+  # Bumper templates (none built in), keyed by template id:
+  # templates:
+  #   station_card:
+  #     image: card.png        # PNG, relative to this file
+  #     region: [0, 0, 1, 1]   # normalized frame region the image occupies
+  #     geometry: stretch      # stretch | strict (aspect must match within 2%)
+  #     threshold: 0.9         # zero-mean normalized cross-correlation, (0,1]
+  #     min_support: 400ms     # minimum match duration
+  #     sha256: ""             # optional integrity check of the PNG file
+
+boundaries:
+  # Candidates within this span of a group's first candidate are fused.
+  # range: 0s .. 10s
+  fusion_tolerance: 100ms
+  # Representative time of a dark/uniform or silence span.
+  # values: midpoint
+  span_policy: midpoint
+  # Dark/uniform events supply boundaries.
+  from_dark_uniform: true
+  # Silence events supply boundaries.
+  from_silence: true
+  # Coded resolution changes supply boundaries.
+  from_resolution: true
+  # Sustained active-picture ratio changes supply boundaries.
+  from_aspect: true
+  # Bumper matches supply boundaries.
+  from_bumpers: true
+  # Validated logo transitions supply boundaries.
+  from_logo: false
+  # Caption style changes supply boundaries.
+  from_captions: false
+  # Scene changes supply boundaries.
+  from_scene: false
+  # Check silence-only and uniform boundaries per recording: when too few spacings between consecutive boundaries of a source are standard ad lengths, that source stops supplying boundary evidence (its boundaries remain).
+  validate_sources: false
+  # validate_sources: a source is judged only with at least this many boundaries.
+  # range: 2 .. 100000
+  validate_min_events: 8
+  # validate_sources: minimum share of spacings within the loose tolerance of a standard duration.
+  # range: 0 .. 1
+  validate_min_share: 0.3
+  # A dark/uniform boundary counts as evidence only when the audio around it gets quiet; known audio that stays loud keeps the boundary but drops its evidence (flagged loud_dark_boundary). Unknown audio is neutral.
+  dark_requires_quiet: true
+  # Audio searched for quiet around a dark/uniform boundary, beyond the dark span itself (split evenly before and after).
+  # range: 0s .. 10s
+  dark_quiet_window: 1.3s
+  # Loudest-channel level (dBFS) at or below which some audio window must fall for a dark/uniform boundary to keep its evidence.
+  # range: -160 .. 0
+  dark_quiet_level_dbfs: -35
+  # A silence-only candidate with a scene cut inside the alignment window moves to the cut and counts as a corroborated audio/visual boundary.
+  silence_scene_corroboration: true
+
+baselines:
+  # Minimum supporting duration of a caption/aspect program baseline.
+  # range: 0s .. 24h
+  min_support: 2m
+  # Minimum share of the supporting duration held by the baseline value.
+  # range: 0.5 .. 1
+  min_dominance: 0.6
+  # Minimum usable observation time for a recording-relative baseline.
+  # range: 0s .. 24h
+  min_recording_support: 1m
+  # Near-zero floor of the brightness baseline.
+  # range: 0 .. 255
+  floor_brightness: 1
+  # Near-zero floor of the nonuniformity baseline.
+  # range: 0 .. 128
+  floor_nonuniformity: 0.5
+  # Near-zero floor of the audio-energy baseline in dBFS.
+  # range: -160 .. 0
+  floor_audio_energy_dbfs: -70
+  # Near-zero floor of the silence-fraction baseline.
+  # range: 0 .. 1
+  floor_silence_fraction: 0.01
+  # Near-zero floor of the scene-change rate baseline (events per second).
+  # range: 0 .. 100
+  floor_scene_rate: 0.02
+  # Explicit program caption style (channel profile); empty = estimate.
+  # values: "" | roll_up | pop_on | paint_on
+  caption_style: ""
+  # Explicit program active-picture ratio (channel profile); 0 = estimate.
+  # range: 0 .. 10
+  aspect_ratio: 0
+
+scoring:
+  # Inclusive advertisement score threshold (>1).
+  # range: 1.000001 .. 1000000
+  threshold: 1.5
+  # Ordered standard advertisement durations.
+  standard_durations: [10s, 15s, 20s, 30s, 45s, 1m, 1m30s, 2m]
+  # Inclusive strict duration tolerance.
+  # range: 0s .. 1m
+  strict_tolerance: 500ms
+  # Inclusive loose duration tolerance.
+  # range: 0s .. 1m
+  loose_tolerance: 1s
+  # Upper bound by which boundary uncertainty may widen duration tolerances (0 = off).
+  # range: 0s .. 10s
+  uncertainty_tolerance_extension: 0s
+  # A standard-duration modifier is credited only when both boundaries of the unit are located within this uncertainty (the midpoint of a long dark or silent span is not a precise boundary).
+  # range: 0s .. 1h
+  duration_max_boundary_uncertainty: 1s
+  # Single block within strict tolerance.
+  # range: 0.000001 .. 1000000
+  strict_duration_factor: 2
+  # Single block within loose tolerance only.
+  # range: 0.000001 .. 1000000
+  loose_duration_factor: 1.5
+  # Multi-block hypothesis with a standard duration.
+  # range: 0.000001 .. 1000000
+  combined_duration_factor: 1.5
+  # Validated logo occupancy at or above logo_present_occupancy.
+  # range: 0.000001 .. 1000000
+  logo_present_factor: 0.1
+  # Validated logo occupancy at or below logo_absent_occupancy.
+  # range: 0.000001 .. 1000000
+  logo_absent_factor: 2
+  # Recognized caption style equals the program baseline (program evidence; 1 disables).
+  # range: 0.000001 .. 1000000
+  caption_match_factor: 0.4
+  # When caption_match_factor applies: always; only to blocks without logo evidence; only when the program style is not pop-on (ads are mostly pop-on); or only when both hold.
+  # values: always | no_logo_evidence | program_not_pop_on | no_logo_evidence_and_program_not_pop_on
+  caption_match_condition: always
+  # Observed absence of displayed captions in a block while the program has a caption style (1 = neutral).
+  # range: 0.000001 .. 1000000
+  caption_absent_factor: 1
+  # A recognized caption style in a block while the program is reliably uncaptioned (1 = disabled).
+  # range: 0.000001 .. 1000000
+  caption_unexpected_factor: 1
+  # A hypothesis whose standard length is only the sum of several blocks (combined_standard_duration) needs at least this many independent ad signals (logo absence, caption, aspect, relative statistics, ad phrases); boundary evidence does not count. 0 = none required.
+  # range: 0 .. 8
+  combined_length_min_families: 0
+  # Refuse a hypothesis whose standard length is only the sum of several blocks (combined_standard_duration) when its first or last block, scored alone, carries only program evidence (caption style match, program phrase, logo present): the sum then reaches into the neighboring program.
+  combined_length_program_edges: true
+  # A hypothesis that earns no standard-duration factor needs at least this many independent ad signals (logo absence, caption, aspect, relative statistics, ad phrases); boundary evidence does not count. 1 = any one.
+  # range: 1 .. 8
+  unmatched_length_min_families: 1
+  # A hypothesis containing a matched captions.ad_phrases phrase (once per hypothesis; an evidence family). 1 = disabled.
+  # range: 0.000001 .. 1000000
+  caption_ad_phrase_factor: 1
+  # A hypothesis containing a matched captions.program_phrases phrase (once per hypothesis). 1 = disabled.
+  # range: 0.000001 .. 1000000
+  caption_program_phrase_factor: 1
+  # A hypothesis of at least silent_block_min_duration whose known audio is at least silent_block_min_fraction silent (1 = disabled).
+  # range: 0.000001 .. 1000000
+  silent_block_factor: 1
+  # silent_block_factor: minimum duration.
+  # range: 0s .. 1h
+  silent_block_min_duration: 10s
+  # silent_block_factor: minimum silent share of the known audio.
+  # range: 0 .. 1
+  silent_block_min_fraction: 0.9
+  # Program evidence for a block longer than any ad unit (breaks.max_unit plus loose_tolerance); 1 = disabled.
+  # range: 0.000001 .. 1
+  long_block_factor: 1
+  # Further standard durations that earn only the loose or combined duration factor, never the strict one; empty = none.
+  loose_standard_durations: []
+  # Widen duration tolerances by this share of the dark/uniform separators at a unit's edges, bounded by uncertainty_tolerance_extension; 0 = the extension follows boundary uncertainty.
+  # range: 0 .. 1
+  tolerance_per_separator: 0
+  # When above 0, raise the threshold to this duration-weighted quantile of block scores (never below threshold); 0 = off.
+  # range: 0 .. 1
+  threshold_percentile: 0
+  # Recognized caption style differs from the program baseline.
+  # range: 0.000001 .. 1000000
+  caption_mismatch_factor: 2
+  # Stable active-picture ratio differs from the program baseline.
+  # range: 0.000001 .. 1000000
+  aspect_mismatch_factor: 2
+  # Each enabled relative-statistics rule that fires.
+  # range: 0.000001 .. 1000000
+  relative_factor: 2
+  # Block occupancy at or above which the logo is substantially present.
+  # range: 0 .. 1
+  logo_present_occupancy: 0.8
+  # Block occupancy at or below which the logo is substantially absent.
+  # range: 0 .. 1
+  logo_absent_occupancy: 0.2
+  # Known-observation ratio required for brightness, nonuniformity and scene factors.
+  # range: 0 .. 1
+  min_coverage_video: 0.8
+  # Known-observation ratio required for logo factors.
+  # range: 0 .. 1
+  min_coverage_logo: 0.8
+  # Known-observation ratio required for caption factors.
+  # range: 0 .. 1
+  min_coverage_captions: 0.8
+  # Known-observation ratio required for aspect factors.
+  # range: 0 .. 1
+  min_coverage_aspect: 0.8
+  # Known-observation ratio required for audio factors.
+  # range: 0 .. 1
+  min_coverage_audio: 0.8
+  # Relative rule: unusually high brightness.
+  relative_brightness: false
+  # Relative rule: unusually high nonuniformity.
+  relative_nonuniformity: false
+  # Relative rule: unusually high audio energy (linear).
+  relative_audio_energy: false
+  # Relative rule: unusually high silence fraction.
+  relative_silence_fraction: false
+  # Relative rule: unusually high scene-change rate.
+  relative_scene_rate: false
+  # A relative rule fires when value >= baseline x this ratio.
+  # range: 1 .. 1000
+  relative_excess_ratio: 1.3
+  # Minimum known observation time in a hypothesis for a relative rule.
+  # range: 0s .. 1h
+  relative_min_support: 2s
+  # Minimum scene events in a hypothesis for the scene-rate rule.
+  # range: 0 .. 100000
+  scene_min_events: 3
+  # Boundary-based evidence families require qualifying boundaries at both edges of a unit (recording edges exempt) or at either edge.
+  # values: both | either
+  boundary_evidence_edges: both
+  # Largest number of consecutive blocks combined into one ad-unit hypothesis.
+  # range: 1 .. 100000
+  max_unit_blocks: 256
+
+breaks:
+  # Minimum individual ad-unit duration.
+  # range: 0s .. 24h
+  min_unit: 4s
+  # Maximum individual ad-unit duration; a unit may measure over it by at most scoring.loose_tolerance.
+  # range: 1ms .. 24h
+  max_unit: 2m
+  # Minimum accepted break duration.
+  # range: 0s .. 24h
+  min_break: 20s
+  # Maximum accepted break duration.
+  # range: 1ms .. 24h
+  max_break: 10m
+  # Relax min_unit and min_break for candidates touching the recording start or end.
+  allow_truncated_edges: true
+  # Merge ad runs separated by short unknown intervals; a merged break may bridge several gaps, each at most max_bridge_gap.
+  bridge_gaps: true
+  # Largest unknown interval that may be bridged.
+  # range: 0s .. 10m
+  max_bridge_gap: 15s
+  # An unknown block no longer than this between an accepted break and a stretch of program longer than any ad unit becomes program (context_sliver); 0 = off.
+  # range: 0s .. 1m
+  sliver_max: 0s
+  # An ad unit that directly follows program and ends in at least this much dark is not an ad (a fade to black, dark_tail); 0 = off.
+  # range: 0s .. 10m
+  dark_tail_max: 0s
+  # Declared recording lead-in: breaks and units starting inside it get the truncated-edge relaxation of the minimum durations; 0 = none.
+  # range: 0s .. 1h
+  margin_start: 0s
+  # Declared recording lead-out, as margin_start for the end.
+  # range: 0s .. 1h
+  margin_end: 0s
+  # Unknown time separated from the main program by a break inside a margin gets the reason adjacent_program (the neighbouring show).
+  mark_adjacent_program: false
+  # A short gap labeled program only because the logo is present may be bridged too (on-screen text in the logo's position, a channel promo); program evidence from captions or a stable interval is never bridged.
+  bridge_logo_program: true
+
+outputs:
+  # summary: segments, breaks, units. detailed: adds boundaries, blocks, events and scored hypotheses that reached the threshold. full: adds every evaluated hypothesis.
+  # values: summary | detailed | full
+  diagnostics: summary
+  # Derived skip list only: move each skip start earlier (positive) or later (negative).
+  # range: -10m .. 10m
+  skip_padding_start: 0s
+  # Derived skip list only: move each skip end later (positive) or earlier (negative).
+  # range: -10m .. 10m
+  skip_padding_end: 0s
+  # Derived skip list only: never skip the first this-much of the recording (labels are unchanged).
+  # range: 0s .. 1h
+  keep_first: 0s
+  # Derived skip list only: never skip the last this-much of the recording.
+  # range: 0s .. 1h
+  keep_last: 0s
+  # CLI: replace an existing output file.
+  overwrite: false
+  # CLI: write an explicitly incomplete result when analysis fails part-way.
+  write_partial: false
+  # Largest number of hypotheses retained in diagnostics (a warning reports truncation).
+  # range: 0 .. 100000000
+  max_hypotheses: 20000
+
+resources:
+  # Decoder worker threads; 0 = number of CPUs, at most 16.
+  # range: 0 .. 256
+  workers: 0
+  # Bound on retained compact feature storage; exceeding it is a resource-limit error (no spill).
+  # range: 16MiB .. 1024GiB
+  memory_budget: 512MiB
+  # Scratch directory (unused: this release never spills to disk).
+  scratch_dir: ""
+  # Scratch quota (this release uses no scratch storage).
+  # range: 0B .. 1024GiB
+  scratch_quota: 0B
